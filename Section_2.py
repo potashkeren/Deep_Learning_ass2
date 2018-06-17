@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
-
+ben=4
 
 
 def model_func(features, labels, mode):
