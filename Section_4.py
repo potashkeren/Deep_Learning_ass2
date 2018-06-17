@@ -177,8 +177,12 @@ def print_log(iteration, train_cost):
     msg = "Training Iteration {0} ---> Training Cost: {1:.3f}"
     print(msg.format(iteration + 1, train_cost))
 
+val_accuracy = 0
 
-def train(num_iteration, print_every_n=250):
+def train(num_iteration, print_every_n=5):
+    global val_accuracy
+    no_improve_streak = 0
+    acc_3_last = 0
     for i in range(num_iteration):
 
         batch = mnist.train.next_batch(batch_size)
@@ -191,12 +195,27 @@ def train(num_iteration, print_every_n=250):
             train_cost = session.run(cost, feed_dict=feed_dict_tr)
             print_log(iteration=i, train_cost=train_cost)
 
+        val_x = np.reshape(mnist.validation.images, [-1, image_size, image_size, num_of_channels])
+        val_accuracy = session.run(accuracy, feed_dict={x: val_x, y_true: mnist.validation.labels})
+
+        if val_accuracy >= acc_3_last:
+            acc_3_last = val_accuracy
+            no_improve_streak = 0
+        else:
+            no_improve_streak += 1
+
+        if no_improve_streak == 3:
+            print("Training stopped after "+str(i)+" iterations because no improvement on validation set.")
+            break
+
 
 print("Start Training...")
 train(num_iteration=num_of_iterations)
 print("Finish Training!")
-test_x = tf.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
-test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels, keep_prob: 1.0})
+test_x = np.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
+test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels})
+print("Validation Accuracy ---> " + str(val_accuracy))
 print("Test Accuracy ---> " + str(test_accuracy))
+
 
 session.close()
