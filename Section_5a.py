@@ -8,9 +8,10 @@ num_of_classes = 10
 image_size = 28
 
 drop_rate = 0.4
-learing_rate = 0.001
+base_learning_rate = 0.001
 batch_size = 100
 num_of_iterations = 5000
+drop_learn_rate = 400
 
 # Network layers params
 filter_size_conv1 = 5
@@ -42,6 +43,9 @@ y_true_cls = tf.argmax(y_true, dimension=1)
 
 # Creating a placeholder for the drop rate
 keep_prob = tf.placeholder_with_default(1 - drop_rate, shape=(), name="keep_prob")
+
+# Creating a placeholder for the learning rate
+learning_rate = tf.placeholder_with_default(base_learning_rate, shape=(), name="learning_rate")
 
 
 #################################### Creating layers functions ####################################
@@ -122,7 +126,7 @@ layer_conv1 = create_conv2d(input=x,
                             conv_filter_size=filter_size_conv1,
                             num_filters=num_filters_conv1)
 
-layer_norm1= create_normalization_layer(layer_conv1)
+layer_norm1 = create_normalization_layer(layer_conv1)
 
 layer_max_pooling1 = create_maxPool(input=layer_norm1,
                                     pool_size=pool_size_max_pool1,
@@ -166,7 +170,7 @@ session.run(tf.global_variables_initializer())
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_logits,
                                                         labels=y_true)
 cost = tf.reduce_mean(cross_entropy)
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=learing_rate).minimize(cost)
+optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -175,28 +179,53 @@ session.run(tf.global_variables_initializer())
 
 def print_log(iteration, train_cost):
     msg = "Training Iteration {0} ---> Training Cost: {1:.3f}"
-    print(msg.format(iteration + 1, train_cost))
+    print(msg.format(iteration, train_cost))
 
 
-def train(num_iteration, print_every_n=250):
+val_accuracy = 0
+
+
+def train(num_iteration, print_every_n=5):
+    global val_accuracy
+    global base_learning_rate
+
+    no_improve_streak = 0
+    acc_3_last = 0
     for i in range(num_iteration):
 
         batch = mnist.train.next_batch(batch_size)
         x_batch = np.reshape(batch[0], [-1, image_size, image_size, num_of_channels])
 
-        feed_dict_tr = {x: x_batch, y_true: batch[1]}
+        if i % drop_learn_rate == 0:
+            base_learning_rate = base_learning_rate / 2
+
+        feed_dict_tr = {x: x_batch, y_true: batch[1], learning_rate: base_learning_rate}
         session.run(optimizer, feed_dict=feed_dict_tr)
 
         if i % print_every_n == 0:
             train_cost = session.run(cost, feed_dict=feed_dict_tr)
             print_log(iteration=i, train_cost=train_cost)
 
+        val_x = np.reshape(mnist.validation.images, [-1, image_size, image_size, num_of_channels])
+        val_accuracy = session.run(accuracy, feed_dict={x: val_x, y_true: mnist.validation.labels})
+
+        if val_accuracy >= acc_3_last:
+            acc_3_last = val_accuracy
+            no_improve_streak = 0
+        else:
+            no_improve_streak += 1
+
+        if no_improve_streak == 3:
+            print("Training stopped after " + str(i) + " iterations because no improvement on validation set.")
+            break
+
 
 print("Start Training...")
 train(num_iteration=num_of_iterations)
 print("Finish Training!")
-test_x = tf.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
-test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels, keep_prob: 1.0})
+test_x = np.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
+test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels})
+print("Validation Accuracy ---> " + str(val_accuracy))
 print("Test Accuracy ---> " + str(test_accuracy))
 
 session.close()

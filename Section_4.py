@@ -8,7 +8,7 @@ num_of_classes = 10
 image_size = 28
 
 drop_rate = 0.4
-learing_rate = 0.001
+learning_rate = 0.001
 batch_size = 100
 num_of_iterations = 5000
 
@@ -166,7 +166,7 @@ session.run(tf.global_variables_initializer())
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_logits,
                                                         labels=y_true)
 cost = tf.reduce_mean(cross_entropy)
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=learing_rate).minimize(cost)
+optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -175,7 +175,7 @@ session.run(tf.global_variables_initializer())
 
 def print_log(iteration, train_cost):
     msg = "Training Iteration {0} ---> Training Cost: {1:.3f}"
-    print(msg.format(iteration + 1, train_cost))
+    print(msg.format(iteration, train_cost))
 
 val_accuracy = 0
 

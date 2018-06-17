@@ -153,7 +153,7 @@ session.run(tf.global_variables_initializer())
 
 def print_log(iteration, train_cost):
     msg = "Training Iteration {0} ---> Training Cost: {1:.3f}"
-    print(msg.format(iteration + 1, train_cost))
+    print(msg.format(iteration, train_cost))
 
 
 def train(num_iteration, print_every_n=250):
