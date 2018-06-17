@@ -1,23 +1,15 @@
 import tensorflow as tf
 import numpy as np
-
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
-# Global params
+# Running params
 num_of_channels = 1
 num_of_classes = 10
 image_size = 28
+
 learing_rate = 0.001
 batch_size = 100
 num_of_iterations = 5000
-
-# Creating the session
-session = tf.Session()
-x = tf.placeholder(tf.float32, shape=[None, image_size, image_size, num_of_channels], name='x')
-
-y_true = tf.placeholder(tf.float32, shape=[None, num_of_classes], name='y_true')
-y_true_cls = tf.argmax(y_true, dimension=1)
 
 # Network layers params
 filter_size_conv1 = 5
@@ -35,6 +27,20 @@ stride_size_maxpool2 = 2
 layer_size_fc1 = 1024
 
 layer_size_fc2 = 1024
+
+# Reading the data
+mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+
+# Creating the session
+session = tf.Session()
+
+x = tf.placeholder(tf.float32, shape=[None, image_size, image_size, num_of_channels], name='x')
+
+y_true = tf.placeholder(tf.float32, shape=[None, num_of_classes], name='y_true')
+y_true_cls = tf.argmax(y_true, dimension=1)
+
+# Creating a placeholder for the drop rate
+drop_rate = tf.placeholder_with_default(0.4, shape=(), name="drop_rate")
 
 
 #################################### Creating layers functions ####################################
@@ -84,7 +90,7 @@ def create_flatten_layer(layer):
     return layer
 
 
-# Create fully connected layer(Dense)
+# Create fully connected layer (Dense)
 def create_fullyConnected_layer(input, num_inputs, num_outputs, use_relu=True):
     # Define weights and biases
     weights = create_weights(shape=[num_inputs, num_outputs])
@@ -97,7 +103,17 @@ def create_fullyConnected_layer(input, num_inputs, num_outputs, use_relu=True):
 
     return layer
 
+
+# Create dropout layer
 def create_dropout_layer(input, drop_rate):
+    layer = tf.nn.dropout(x=input, keep_prob=drop_rate)
+    return layer
+
+
+# Create normalization layer
+def create_normalization_layer(input, drop_rate):
+    pass
+
 
 #################################### Building the network ####################################
 
@@ -169,9 +185,12 @@ def train(num_iteration, print_every_n=250):
             train_cost = session.run(cost, feed_dict=feed_dict_tr)
             print_log(iteration=i, train_cost=train_cost)
 
+
 print("Start Training...")
 train(num_iteration=num_of_iterations)
 print("Finish Training!")
-test_x=tf.reshape(mnist.test.images,[-1,image_size,image_size,num_of_channels])
-test_accuracy = session.run(accuracy,feed_dict={x:test_x , y_true: mnist.test.labels})
-print("Test Accuracy ---> "+str(test_accuracy))
+test_x = tf.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
+test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels, drop_rate: 1.0})
+print("Test Accuracy ---> " + str(test_accuracy))
+
+session.close()
