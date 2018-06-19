@@ -45,9 +45,10 @@ def create_biases(size):
 
 # Create a max pooling layer
 def create_maxPool(input, pool_size, stride, padding="VALID", name="pool"):
-    layer = tf.nn.max_pool(value=input, ksize=[1, pool_size, pool_size, 1], strides=[1, stride, stride, 1],
-                           padding=padding, name=name)
-    return layer
+    with tf.name_scope(name):
+        layer = tf.nn.max_pool(value=input, ksize=[1, pool_size, pool_size, 1], strides=[1, stride, stride, 1],
+                               padding=padding)
+        return layer
 
 
 # Create convolutional 2-dimensional layer
@@ -72,10 +73,6 @@ def create_conv2d(input, num_input_channels, conv_filter_size, num_filters, name
 
 # Create a flatten layer for a dense layer input
 def create_flatten_layer(layer):
-    # layer_shape = layer.get_shape()
-    # num_features = layer_shape[1:4].num_elements()
-    # layer = tf.Variable(tf.reshape(layer, [-1, num_features]), name="flatten")
-
     layer = tf.layers.flatten(inputs=layer, name="flatten")
     return layer
 
@@ -113,7 +110,6 @@ mnist = input_data.read_data_sets('MNIST_data', one_hot=True, validation_size=0)
 # Creating the session
 session = tf.Session()
 
-
 x = tf.placeholder(tf.float32, shape=[None, image_size, image_size, num_of_channels], name='x')
 
 y_true = tf.placeholder(tf.float32, shape=[None, num_of_classes], name='y_true')
@@ -125,64 +121,68 @@ keep_prob = tf.placeholder_with_default(1 - drop_rate, shape=(), name="keep_prob
 layer_conv1 = create_conv2d(input=x,
                             num_input_channels=num_of_channels,
                             conv_filter_size=filter_size_conv1,
-                            num_filters=num_filters_conv1, name="conv1")
+                            num_filters=num_filters_conv1, name="Conv1")
 
-layer_norm1 = create_normalization_layer(layer_conv1, name="norm1")
+layer_norm1 = create_normalization_layer(layer_conv1, name="Norm1")
 
 layer_max_pooling1 = create_maxPool(input=layer_norm1,
                                     pool_size=pool_size_max_pool1,
-                                    stride=stride_size_maxpool1, name="pool1")
+                                    stride=stride_size_maxpool1, name="Pool1")
 
 layer_conv2 = create_conv2d(input=layer_max_pooling1,
                             num_input_channels=num_filters_conv1,
                             conv_filter_size=filter_size_conv2,
-                            num_filters=num_filters_conv2, name="conv2")
+                            num_filters=num_filters_conv2, name="Conv2")
 
-layer_norm2 = create_normalization_layer(layer_conv2, name="norm2")
+layer_norm2 = create_normalization_layer(layer_conv2, name="Norm2")
 
 layer_max_pooling2 = create_maxPool(input=layer_norm2,
                                     pool_size=pool_size_max_pool2,
-                                    stride=stride_size_maxpool2, name="pool2")
+                                    stride=stride_size_maxpool2, name="Pool2")
 
 layer_flat = create_flatten_layer(layer_max_pooling2)
 
 layer_fc1 = create_fullyConnected_layer(input=layer_flat,
                                         num_inputs=layer_flat.get_shape()[1:4].num_elements(),
                                         num_outputs=layer_size_fc1,
-                                        use_relu=True, name="fc1")
+                                        use_relu=True, name="Fc1")
 
-drop_layer = create_dropout_layer(layer_fc1, keep_prob, name="drop")
+drop_layer = create_dropout_layer(layer_fc1, keep_prob, name="Drop")
 
 layer_fc2 = create_fullyConnected_layer(input=drop_layer,
                                         num_inputs=layer_size_fc1,
                                         num_outputs=layer_size_fc2,
-                                        use_relu=True, name="fc2")
+                                        use_relu=True, name="Fc2")
 
 layer_logits = create_fullyConnected_layer(input=layer_fc2,
                                            num_inputs=layer_size_fc2,
                                            num_outputs=num_of_classes,
-                                           use_relu=False, name="logits")
+                                           use_relu=False, name="Logits")
 
 y_pred = tf.nn.softmax(layer_logits, name='y_pred')
 y_pred_cls = tf.argmax(y_pred, dimension=1)
 
-with tf.name_scope("cross_entropy"):
+with tf.name_scope("Cross_entropy"):
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_logits, labels=y_true)
 
-with tf.name_scope("cost"):
+with tf.name_scope("Cost"):
     cost = tf.reduce_mean(cross_entropy)
+tf.summary.scalar("cost",cost)
 
-with tf.name_scope("train"):
+with tf.name_scope("Train"):
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 
-with tf.name_scope("accuracy"):
+with tf.name_scope("Accuracy"):
     correct_prediction = tf.equal(y_pred_cls, y_true_cls)
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+tf.summary.scalar("acc",accuracy)
+
+# Merge all summaries for graphs
+merged = tf.summary.merge_all()
 
 session.run(tf.global_variables_initializer())
 
-writer = tf.summary.FileWriter("./tensorboard/summary")
-writer.add_graph(session.graph)
+writer = tf.summary.FileWriter("tensorboard/summary",session.graph)
 
 
 def print_log(iteration, train_cost):
@@ -198,6 +198,8 @@ def train(num_iteration, print_every_n=250):
 
         feed_dict_tr = {x: x_batch, y_true: batch[1]}
         session.run(optimizer, feed_dict=feed_dict_tr)
+        summary = session.run(merged, feed_dict=feed_dict_tr)
+        writer.add_summary(summary, i)
 
         if (i + 1) % print_every_n == 0 or i == 0:
             train_cost = session.run(cost, feed_dict=feed_dict_tr)

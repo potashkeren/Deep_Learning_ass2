@@ -85,9 +85,7 @@ def create_conv2d(input, num_input_channels, conv_filter_size, num_filters):
 
 # Create a flatten layer for a dense layer input
 def create_flatten_layer(layer):
-    layer_shape = layer.get_shape()
-    num_features = layer_shape[1:4].num_elements()
-    layer = tf.reshape(layer, [-1, num_features])
+    layer = tf.layers.flatten(inputs=layer, name="flatten")
 
     return layer
 
