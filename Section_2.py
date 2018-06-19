@@ -110,7 +110,7 @@ layer_max_pooling1 = create_maxPool(input=layer_conv1,
                                     pool_size=pool_size_max_pool1,
                                     stride=stride_size_maxpool1)
 
-layer_conv2 = create_conv2d(input=layer_conv1,
+layer_conv2 = create_conv2d(input=layer_max_pooling1,
                             num_input_channels=num_filters_conv1,
                             conv_filter_size=filter_size_conv2,
                             num_filters=num_filters_conv2)

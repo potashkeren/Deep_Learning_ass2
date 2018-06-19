@@ -11,6 +11,7 @@ drop_rate = 0.4
 learning_rate = 0.001
 batch_size = 100
 num_of_iterations = 5000
+early_stopping = 10
 
 # Network layers params
 filter_size_conv1 = 5
@@ -128,7 +129,7 @@ layer_max_pooling1 = create_maxPool(input=layer_norm1,
                                     pool_size=pool_size_max_pool1,
                                     stride=stride_size_maxpool1)
 
-layer_conv2 = create_conv2d(input=layer_conv1,
+layer_conv2 = create_conv2d(input=layer_max_pooling1,
                             num_input_channels=num_filters_conv1,
                             conv_filter_size=filter_size_conv2,
                             num_filters=num_filters_conv2)
@@ -182,7 +183,7 @@ val_accuracy = 0
 def train(num_iteration, print_every_n=5):
     global val_accuracy
     no_improve_streak = 0
-    acc_3_last = 0
+    last_acc = 0
     for i in range(num_iteration):
 
         batch = mnist.train.next_batch(batch_size)
@@ -198,13 +199,14 @@ def train(num_iteration, print_every_n=5):
         val_x = np.reshape(mnist.validation.images, [-1, image_size, image_size, num_of_channels])
         val_accuracy = session.run(accuracy, feed_dict={x: val_x, y_true: mnist.validation.labels})
 
-        if val_accuracy >= acc_3_last:
-            acc_3_last = val_accuracy
+        if val_accuracy > last_acc:
             no_improve_streak = 0
         else:
             no_improve_streak += 1
 
-        if no_improve_streak == 3:
+        last_acc = val_accuracy
+
+        if no_improve_streak == early_stopping:
             print("Training stopped after "+str(i)+" iterations because no improvement on validation set.")
             break
 
