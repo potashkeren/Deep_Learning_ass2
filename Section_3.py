@@ -30,7 +30,7 @@ layer_size_fc1 = 1024
 layer_size_fc2 = 1024
 
 # Reading the data
-mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+mnist = input_data.read_data_sets('MNIST_data', one_hot=True, validation_size=0)
 
 # Creating the session
 session = tf.Session()
@@ -122,7 +122,7 @@ layer_conv1 = create_conv2d(input=x,
                             conv_filter_size=filter_size_conv1,
                             num_filters=num_filters_conv1)
 
-layer_norm1= create_normalization_layer(layer_conv1)
+layer_norm1 = create_normalization_layer(layer_conv1)
 
 layer_max_pooling1 = create_maxPool(input=layer_norm1,
                                     pool_size=pool_size_max_pool1,
@@ -187,15 +187,15 @@ def train(num_iteration, print_every_n=250):
         feed_dict_tr = {x: x_batch, y_true: batch[1]}
         session.run(optimizer, feed_dict=feed_dict_tr)
 
-        if i % print_every_n == 0:
+        if (i + 1) % print_every_n == 0 or i == 0:
             train_cost = session.run(cost, feed_dict=feed_dict_tr)
-            print_log(iteration=i, train_cost=train_cost)
+            print_log(iteration=i + 1, train_cost=train_cost)
 
 
 print("Start Training...")
 train(num_iteration=num_of_iterations)
 print("Finish Training!")
-test_x = tf.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
+test_x = np.reshape(mnist.test.images, [-1, image_size, image_size, num_of_channels])
 test_accuracy = session.run(accuracy, feed_dict={x: test_x, y_true: mnist.test.labels, keep_prob: 1.0})
 print("Test Accuracy ---> " + str(test_accuracy))
 

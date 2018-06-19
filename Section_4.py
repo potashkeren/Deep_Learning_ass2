@@ -191,9 +191,9 @@ def train(num_iteration, print_every_n=5):
         feed_dict_tr = {x: x_batch, y_true: batch[1]}
         session.run(optimizer, feed_dict=feed_dict_tr)
 
-        if i % print_every_n == 0:
+        if (i + 1) % print_every_n == 0 or i == 0:
             train_cost = session.run(cost, feed_dict=feed_dict_tr)
-            print_log(iteration=i, train_cost=train_cost)
+            print_log(iteration=i + 1, train_cost=train_cost)
 
         val_x = np.reshape(mnist.validation.images, [-1, image_size, image_size, num_of_channels])
         val_accuracy = session.run(accuracy, feed_dict={x: val_x, y_true: mnist.validation.labels})
